@@ -4,6 +4,7 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const updog = document.getElementById("updog");
 const outta = document.getElementById("outta");
+const capitaine = document.getElementById("capitaine");
 
 
 let sprites = [];
@@ -21,7 +22,7 @@ function addSprite(sprite, blabel) {
 			offset: [0, 0],
 			scale: [0]
 		});
-		outta.value = getAllPs(buttonData);
+		//outta.value = getAllPs(buttonData);
 	}, false);
 	be.bi = sprites.length;
 	be.innerHTML = blabel;
@@ -29,9 +30,8 @@ function addSprite(sprite, blabel) {
 	sprites.push(sprite);
 }
 
-updog.addEventListener("change", function(e) {
+function loadSingleWholeImage(file) {
 	let fr = new FileReader();
-	let blabel = this.files[0].name;
 	fr.onloadend = function() {
 		let img = new Image();
 		img.onload = function() {
@@ -44,9 +44,23 @@ updog.addEventListener("change", function(e) {
 				sx: 0, sy: 0,
 				sw: imageData.width,
 				sh: imageData.height
-			}, blabel);
+			}, file.name);
 		}
 		img.src = fr.result;
 	}
-	fr.readAsDataURL(this.files[0]);
+	fr.readAsDataURL(file);
+}
+
+updog.addEventListener("change", function(e) {
+	let upmode = 0;
+	switch (upmode) {
+	case 0:
+		for (let file of this.files)
+			loadSingleWholeImage(file);
+		break;
+	}
+}, false);
+
+capitaine.addEventListener("click", function(e) {
+	navigator.clipboard.writeText(getAllPs(buttonData));
 }, false);
