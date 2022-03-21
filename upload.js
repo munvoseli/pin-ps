@@ -1,7 +1,7 @@
 'use strict';
 
 const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+ctx = canvas.getContext("2d");
 const updog = document.getElementById("updog");
 const outta = document.getElementById("outta");
 const capitaine = document.getElementById("capitaine");
@@ -51,14 +51,48 @@ function loadSingleWholeImage(file) {
 	fr.readAsDataURL(file);
 }
 
+function loadCeleste(datafile, metafile) {
+	let fr = new FileReader();
+	fr.onloadend = function() {
+		let imd = celesteToImageData(fr.result);
+		fr.onloadend = function() {
+			let sm = celesteToSheetmeta(fr.result);
+			console.log(imd, sm);
+			for (let h of sm) {
+				if (h[3] * h[4] % 8 == 0)
+				addSprite({
+					imageData: imd,
+					sx: h[1], sy: h[2], sw: h[3], sh: h[4]
+				}, h[0]);
+			}
+		}
+		fr.readAsArrayBuffer(metafile);
+		//canvas.width = imd.width;
+		//canvas.height = imd.height;
+		//ctx.putImageData(imd, 0, 0);
+	}
+	fr.readAsArrayBuffer(datafile);
+}
+
+
 updog.addEventListener("change", function(e) {
-	let upmode = 0;
+	let upmode = 1;
 	switch (upmode) {
 	case 0:
 		for (let file of this.files)
 			loadSingleWholeImage(file);
 		break;
+	case 1:
+		console.log(this.files.length);
+		if (this.files.length != 2) break;
+		let fn0 = this.files[0].name;
+		if (fn0.substr(fn0.length - 4) == "data")
+			loadCeleste(this.files[0], this.files[1]);
+		else
+			loadCeleste(this.files[1], this.files[0]);
+		break;
 	}
+	console.log(this.files);
 }, false);
 
 capitaine.addEventListener("click", function(e) {

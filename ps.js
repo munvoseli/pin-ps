@@ -1,6 +1,6 @@
 'use strict';
 
-
+let ctx;
 
 // button inner/outer diameter
 const BID_IN = 91/64;
@@ -29,15 +29,22 @@ function getImagePsMask(imageData, sx, sy, sw, sh) {
 	let imd = new Uint8Array(sw * sh * 4);
 	let i = 0;
 	for (let y = sy; y < sy + sh; ++y)
-		for (let xc = sx; xc < (sx + sw) * 4; ++xc)
+		for (let xc = sx * 4; xc < (sx + sw) * 4; ++xc)
 			imd[i++] = imageData.data[y * imageData.width * 4 + xc];
+	let dimd = new ImageData(sw, sh);
+	for (let i = 0; i < dimd.data.length; ++i)
+		dimd.data[i] = imd[i];
+	ctx.putImageData(dimd, 0, 0);
+	console.log(imd);
 	i = 0;
 	let res = "";
+	let hits = new Uint8Array(sw * sh);
 	while (true) {
 		// find next color
 		while (imd[i + 3] != 255) {
 			i += 4;
 			if (i >= sw * sh * 4) {
+				console.log(hits);
 				return res;
 			}
 		}
@@ -50,6 +57,7 @@ function getImagePsMask(imageData, sx, sy, sw, sh) {
 				&& imd[j + 1] == imd[i + 1]
 				&& imd[j + 2] == imd[i + 2]) {
 				buffer |= 1;
+				hits[j / 4]++;
 				imd[j + 3] = 0;
 			}
 			if (buffer & 256) {
@@ -169,15 +177,14 @@ function getAllPs(arr) {
 	let hspace = pw / perrow;
 	let vspace = BOD_PT + 12;
 	let i = 0;
-	arr.push({});
 	for (let bd of arr) {
 		let x = (i % perrow + 1/2) * hspace;
 		let y = (Math.floor(i / perrow) + 1/2) * vspace;
 		outstr += `gsave\n${x} ${y} translate\n`;
 		outstr += `newpath 0 0 ${BOD_PT/2} 0 360 arc closepath clip\n`;
 		outstr += "clippath 1 setlinewidth 0.5 setgray stroke\n";
-		//outstr += getButtonPs(bd.imageData, bd.sx, bd.sy, bd.sw, bd.sh, [0, 0], [i], "");
 		outstr += getStripesPs(["55aaff", "ff55aa", "ffffff", "ff55aa", "55aaff"]);
+		outstr += getButtonPs(bd.imageData, bd.sx, bd.sy, bd.sw, bd.sh, [0, 0], [0], "");
 		outstr += "grestore\n"; // clipsave/restore not necessary due to gsave/restore
 		++i;
 	}
