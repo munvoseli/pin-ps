@@ -52,7 +52,6 @@ function getImagePsMask(imageData, sx, sy, sw, sh) {
 		while (imd[i + 3] != 255) {
 			i += 4;
 			if (i >= sw * sh * 4) {
-				console.log(res);
 				return res;
 			}
 		}
@@ -69,7 +68,6 @@ function getImagePsMask(imageData, sx, sy, sw, sh) {
 			}
 			if (buffer & 256) {
 				bitmap += HEX[(buffer >> 4) & 15] + HEX[buffer & 15];
-				console.log(imd[i], imd[i + 1], imd[i + 2]);
 				buffer = 1;
 			}
 		}
@@ -115,12 +113,12 @@ function getScales(scale, sw, sh) {
 	let xss = scale & 3;
 	let yss = scale >> 2;
 	if (xss && yss) {
-		sclx = [0, BID_PT, BOD_PT, scale[1]][xss] / sw;
-		scly = [0, BID_PT, BOD_PT, scale[2]][yss] / sh;
+		sclx = [0, BID_PT, BOD_PT, scale[1] || 0][xss] / sw;
+		scly = [0, BID_PT, BOD_PT, scale[2] || 0][yss] / sh;
 	} else if (xss) {
-		sclx = scly = [0, BID_PT, BOD_PT, scale[1]][xss] / sw;
+		sclx = scly = [0, BID_PT, BOD_PT, scale[1] || 0][xss] / sw;
 	} else if (yss) {
-		sclx = scly = [0, BID_PT, BOD_PT, scale[2]][yss] / sh;
+		sclx = scly = [0, BID_PT, BOD_PT, scale[2] || 0][yss] / sh;
 	} else {
 		sclx = scly = BID_PT / Math.sqrt(sw ** 2 + sh ** 2);
 	}
@@ -131,24 +129,16 @@ function getStripesPs(stripes) {
 	
 }
 
-// this function is for when
-// the image is all opaque
-// or the background is a single color
-function getButtonPs(wpx, hpx, srcx, srcy, imageData, offset, scale, bgColor) {
-	let res = "";
-	let [sclx, scly] = getScales(scale, wpx, hpx);
-	res += `gsave\n${sclx} ${scly} scale\n`;
-//	res += `${wpx} ${hpx} 8 [1 0 0 -1 ${wpx/2} ${hpx/2}] {<\n`;
-	res += getImagePsColor(imageData, srcx, srcy, wpx, hpx);
-	res += "grestore\n";
-	return res;
-}
-
-function getButtonPsMask(imageData, sx, sy, sw, sh, offset, scale) {
+// sx, sy, sw, and sh refer to the source on the imageData, and are all pixel measurements
+function getButtonPs(imageData, sx, sy, sw, sh, offset, scale, bgColor) {
 	let res = "";
 	let [sclx, scly] = getScales(scale, sw, sh);
 	res += `${sclx} ${scly} scale\n`;
-	res += getImagePsMask(imageData, sx, sy, sw, sh);
+	res += `${offset[0] || 0} ${offset[1] || 0} translate\n`;
+	if (!bgColor)
+		res += getImagePsMask(imageData, sx, sy, sw, sh);
+	else
+		res += getImagePsColor(imageData, sx, sy, sw, sh, bgColor);
 	res += "\n";
 	return res;
 }
@@ -164,16 +154,12 @@ function getAllPs(arr) {
 	for (let bd of arr) {
 		let x = (i % perrow + 1/2) * hspace;
 		let y = (Math.floor(i / perrow) + 1/2) * vspace;
-		++i;
 		outstr += `gsave\n${x} ${y} translate\n`;
-		outstr += "clipsave\n";
 		outstr += `newpath 0 0 ${BOD_PT/2} 0 360 arc closepath clip\n`;
 		outstr += "clippath 1 setlinewidth 0.5 setgray stroke\n";
-		outstr += getButtonPsMask(bd.imageData, bd.sx, bd.sy, bd.sw, bd.sh);
-		/*res += `newpath 0 0 ${BID_PT/2} 0 360 arc closepath\n`;
-		res += "1 setlinewidth 0.5 setgray stroke\n";*/
-		outstr += "cliprestore\n";
-		outstr += "grestore\n";
+		outstr += getButtonPs(bd.imageData, bd.sx, bd.sy, bd.sw, bd.sh, [0, 0], [i], "");
+		outstr += "grestore\n"; // clipsave/restore not necessary due to gsave/restore
+		++i;
 	}
 	return outstr + "showpage\n";
 }
