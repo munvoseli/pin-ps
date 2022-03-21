@@ -59,7 +59,6 @@ function loadCeleste(datafile, metafile) {
 			let sm = celesteToSheetmeta(fr.result);
 			console.log(imd, sm);
 			for (let h of sm) {
-				if (h[3] * h[4] % 8 == 0)
 				addSprite({
 					imageData: imd,
 					sx: h[1], sy: h[2], sw: h[3], sh: h[4]

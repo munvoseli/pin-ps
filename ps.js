@@ -38,38 +38,39 @@ function getImagePsMask(imageData, sx, sy, sw, sh) {
 	console.log(imd);
 	i = 0;
 	let res = "";
-	let hits = new Uint8Array(sw * sh);
 	while (true) {
 		// find next color
 		while (imd[i + 3] != 255) {
 			i += 4;
 			if (i >= sw * sh * 4) {
-				console.log(hits);
+				//console.log(hits);
 				return res;
 			}
 		}
 		let bitmap = "";
-		let buffer = 1;
-		for (let j = 0; j < imd.length; j += 4) {
-			buffer <<= 1;
-			if (imd[j + 3] == 255
-				&& imd[j] == imd[i]
-				&& imd[j + 1] == imd[i + 1]
-				&& imd[j + 2] == imd[i + 2]) {
-				buffer |= 1;
-				hits[j / 4]++;
-				imd[j + 3] = 0;
-			}
-			if (buffer & 256) {
-				bitmap += HEX[(buffer >> 4) & 15] + HEX[buffer & 15];
-				buffer = 1;
-			}
-		}
-		if (buffer != 1) {
-			console.error("potential source of error", buffer);
-			while ((buffer & 256) == 0)
+		let j = 0;
+		for (let y = 0; y < sh; ++y) {
+			let buffer = 1;
+			for (let x = 0; x < sw; ++x) {
 				buffer <<= 1;
-			bitmap += HEX[(buffer >> 4) & 15] + HEX[buffer & 15];
+				if (imd[j + 3] == 255
+					&& imd[j] == imd[i]
+					&& imd[j + 1] == imd[i + 1]
+					&& imd[j + 2] == imd[i + 2]) {
+					buffer |= 1;
+					imd[j + 3] = 0;
+				}
+				j += 4;
+				if (buffer & 256) {
+					bitmap += HEX[(buffer >> 4) & 15] + HEX[buffer & 15];
+					buffer = 1;
+				}
+			}
+			if (buffer != 1) {
+				while ((buffer & 256) == 0)
+					buffer <<= 1;
+				bitmap += HEX[(buffer >> 4) & 15] + HEX[buffer & 15];
+			}
 		}
 		res += `${(imd[i]/255).toFixed(3)} ${(imd[i + 1]/255).toFixed(3)} ${(imd[i + 2]/255).toFixed(3)} setrgbcolor\n`;
 		//res += `${Math.random()} setgray\n`;
