@@ -1,20 +1,6 @@
 'use strict';
 
-// offset:
-// pixels
-// points
 
-// scale:
-// inscribe
-// circumscribe inner
-// circumscribe outer
-// circumscribe outer unlinked
-// circumscribe outer unlinked
-// custom original ratio
-// custom unlinked ratio
-
-// outer / inner / auto / custom
-// auto + auto = inscribe inner circle
 
 // button inner/outer diameter
 const BID_IN = 91/64;
@@ -107,26 +93,58 @@ function getImagePsColor(imageData, srcx, srcy, wpx, hpx, bgColor) {
 	return res;
 }
 
+function hyton(nybble) {
+	let c = nybble.charCodeAt(0);
+	if (c > 0x39)
+		return (c & 15) + 9;
+	return c & 15;
+}
+
+function hbton(nya, nyb) {
+	return (hyton(nya) << 4) + hyton(nyb);
+}
+
+function hctostr(hc) { // hex color string to ps string
+	return (
+		(hbton(hc[0], hc[1]) / 255).toFixed(3) + " " +
+		(hbton(hc[2], hc[3]) / 255).toFixed(3) + " " +
+		(hbton(hc[4], hc[5]) / 255).toFixed(3) + " setrgbcolor"
+	);
+}
+
+function getStripesPs(stripes) {
+	let res = "";
+	res += `newpath ${-BOD_PT/2} ${-BOD_PT/2} moveto ${BOD_PT/2} ${-BOD_PT/2} lineto\n`;
+	for (let i = 1; i < stripes.length; ++i) {
+		let y = (BID_PT * (-1/2 + i / stripes.length)).toFixed(2);
+		res += `${BOD_PT/2} ${y} lineto ${-BOD_PT/2} ${y} lineto closepath\n`;
+		res += hctostr(stripes[i - 1]) + " fill\n";
+		res += `newpath ${-BOD_PT/2} ${y} moveto ${BOD_PT/2} ${y} lineto\n`;
+	}
+	res += `${BOD_PT/2} ${BOD_PT/2} lineto ${-BOD_PT/2} ${BOD_PT/2} lineto closepath\n`;
+	res += hctostr(stripes[stripes.length - 1]) + " fill\n";
+	return res;
+}
+
 // auto / inner / outer / custom
+// auto + auto = inscribe inner circle
 function getScales(scale, sw, sh) {
 	let sclx, scly;
 	let xss = scale & 3;
 	let yss = scale >> 2;
-	if (xss && yss) {
-		sclx = [0, BID_PT, BOD_PT, scale[1] || 0][xss] / sw;
-		scly = [0, BID_PT, BOD_PT, scale[2] || 0][yss] / sh;
-	} else if (xss) {
-		sclx = scly = [0, BID_PT, BOD_PT, scale[1] || 0][xss] / sw;
-	} else if (yss) {
-		sclx = scly = [0, BID_PT, BOD_PT, scale[2] || 0][yss] / sh;
-	} else {
+	if (!xss && !yss) {
 		sclx = scly = BID_PT / Math.sqrt(sw ** 2 + sh ** 2);
+		return [sclx, scly];
 	}
+	if (xss)
+		sclx = [0, BID_PT, BOD_PT, scale[1] || 0][xss] / sw;
+	if (yss)
+		scly = [0, BID_PT, BOD_PT, scale[2] || 0][yss] / sh;
+	if (!xss)
+		sclx = scly;
+	else
+		scly = sclx;
 	return [sclx, scly];
-}
-
-function getStripesPs(stripes) {
-	
 }
 
 // sx, sy, sw, and sh refer to the source on the imageData, and are all pixel measurements
@@ -151,13 +169,15 @@ function getAllPs(arr) {
 	let hspace = pw / perrow;
 	let vspace = BOD_PT + 12;
 	let i = 0;
+	arr.push({});
 	for (let bd of arr) {
 		let x = (i % perrow + 1/2) * hspace;
 		let y = (Math.floor(i / perrow) + 1/2) * vspace;
 		outstr += `gsave\n${x} ${y} translate\n`;
 		outstr += `newpath 0 0 ${BOD_PT/2} 0 360 arc closepath clip\n`;
 		outstr += "clippath 1 setlinewidth 0.5 setgray stroke\n";
-		outstr += getButtonPs(bd.imageData, bd.sx, bd.sy, bd.sw, bd.sh, [0, 0], [i], "");
+		//outstr += getButtonPs(bd.imageData, bd.sx, bd.sy, bd.sw, bd.sh, [0, 0], [i], "");
+		outstr += getStripesPs(["55aaff", "ff55aa", "ffffff", "ff55aa", "55aaff"]);
 		outstr += "grestore\n"; // clipsave/restore not necessary due to gsave/restore
 		++i;
 	}
