@@ -8,25 +8,134 @@ const capitaine = document.getElementById("capitaine");
 
 
 let sprites = [];
+let sprh = ["Spritesheets"];
+let sprhel = document.createElement("dir");
+sprhel.innerHTML = "h";
+document.body.appendChild(sprhel);
+sprhel.setAttribute("id", "sprhel");
+for (let i = 0; i < 10; ++i) {
+	sprhel.appendChild(document.createElement("div"));
+}
+
+function clearChildren(el) {
+	while (el.children.length)
+		el.removeChild(el.lastChild);
+}
+
+function dironclick() {
+	console.log(this.dirt);
+	for (let i = this.layer; i < 10; ++i)
+		clearChildren(sprhel.children[i]);
+	for (let i = 1; i < this.dirt.length; ++i) {
+		if (this.dirt[i] instanceof Array) {
+			sprhel.children[this.layer].appendChild(createButtonWithDir(this.dirt[i], this.layer + 1));
+		} else if (typeof this.dirt[i] == "number") {
+			addSpriteToButtonData(this.dirt[i]);
+			console.log("added button data");
+		}
+	}
+}
+
+document.body.appendChild(createButtonWithDir(sprh, 0));
+
+function getDescBySteps(steps) {
+	let p = sprh;
+	for (let step of steps) {
+		for (let i = 0; i < p.length; ++i) {
+			if (p instanceof Array && p[i][0] == step) {
+				p = p[i];
+				break;
+			}
+		}
+	}
+	return p;
+}
+
+function createButtonWithDir(dir, layer) {
+	let btn = document.createElement("button");
+	btn.dirt = dir;
+	btn.layer = layer;
+	btn.innerHTML = dir[0];
+	if (dir.length == 2 && typeof dir[1] == "number") {
+		btn.style.backgroundColor = "#ccc";
+		let can = document.createElement("canvas");
+		let spr = sprites[dir[1]];
+		can.width  = spr.sw;
+		can.height = spr.sh;
+		let ctx = can.getContext("2d");
+		ctx.putImageData(spr.imageData, -spr.sx, -spr.sy, spr.sx, spr.sy, spr.sw, spr.sh);
+		btn.appendChild(can);
+	}
+	btn.addEventListener("click", dironclick);
+	return btn;
+}
+
+function splitPath(path) {
+	let steps = [];
+	let j = 0;
+	for (var i = 0; i < path.length; ++i) {
+		if (path[i] == "\\" || path[i] == "/") {
+			let ss = path.substring(j, i);
+			if (ss.length != 0)
+				steps.push(ss);
+			j = i + 1;
+		} else if (path.charCodeAt(i) >= 0x30 && path.charCodeAt(i) <= 0x39 && (path.charCodeAt(i-1) < 0x30 || path.charCodeAt(i-1) > 0x39)) {
+			let ss = path.substring(j, i);
+			if (ss.length != 0)
+				steps.push(ss);
+			j = i;
+		}
+	}
+	if (i > j) {
+		let ss = path.substring(j, i);
+		steps.push(ss);
+	}
+	return steps;
+}
+
+function addSpriteToPath(id, path) {
+	let steps = splitPath(path);
+	let patharr = sprh;
+	for (let i = 0; i < steps.length; ++i) {
+		let foundPath = false;
+		for (let p of patharr) {
+			if (p[0] == steps[i]) {
+				foundPath = true;
+				patharr = p;
+				break;
+			}
+		}
+		if (!foundPath) {
+			let p = [steps[i]];
+			patharr.push(p);
+			patharr = p;
+		}
+	}
+	patharr.push(id);
+}
+
+function addSpriteToButtonData(bi) {
+	let spr = sprites[bi];
+	buttonData.push({
+		imageData: spr.imageData,
+		sx: spr.sx,
+		sy: spr.sy,
+		sw: spr.sw,
+		sh: spr.sh,
+		offset: [0, 0],
+		scale: [0]
+	});
+}
 
 function addSprite(sprite, blabel) {
-	let be = document.createElement("button");
-	be.addEventListener("click", function() {
-		let spr = sprites[this.bi];
-		buttonData.push({
-			imageData: spr.imageData,
-			sx: spr.sx,
-			sy: spr.sy,
-			sw: spr.sw,
-			sh: spr.sh,
-			offset: [0, 0],
-			scale: [0]
-		});
-		//outta.value = getAllPs(buttonData);
-	}, false);
-	be.bi = sprites.length;
-	be.innerHTML = blabel;
-	document.body.appendChild(be);
+//	let be = document.createElement("button");
+//	be.addEventListener("click", function() {
+//		//outta.value = getAllPs(buttonData);
+//	}, false);
+//	be.bi = sprites.length;
+//	be.innerHTML = blabel;
+//	document.body.appendChild(be);
+	addSpriteToPath(sprites.length, blabel);
 	sprites.push(sprite);
 }
 
